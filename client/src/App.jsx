@@ -148,46 +148,52 @@ export default function App() {
       <div className="relative z-10 flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-10">
         {/* HEADER */}
         <motion.header
-          initial={{ opacity: 0, y: -15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8 sm:mb-10"
-        >
-          <img
-            src="/logo.png"
-            alt="WeatherFo logo"
-            className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 mx-auto drop-shadow-md"
-          />
-          <h1 className="text-4xl sm:text-6xl font-extrabold bg-gradient-to-r from-sky-200 to-cyan-400 bg-clip-text text-transparent drop-shadow-lg">
-            WeatherFo
-          </h1>
-          <p className="text-xs sm:text-sm text-blue-100 tracking-wide mt-1">
-            Real-Time Weather Application
-          </p>
+  initial={{ opacity: 0, y: -15 }}
+  animate={{ opacity: 1, y: 0 }}
+  className="flex flex-col items-center justify-center min-h-[80vh] sm:min-h-[60vh] 
+             text-center px-4 py-10 bg-gradient-to-b from-white/5 to-transparent 
+             rounded-3xl backdrop-blur-sm"
+>
+  {/* Logo */}
+  <img
+    src="/logo.png"
+    alt="WeatherFo logo"
+    className="w-20 h-20 sm:w-28 sm:h-28 mx-auto mb-3 drop-shadow-lg"
+  />
 
-          {/* Search bar */}
-          <div className="flex flex-col sm:flex-row justify-center mt-6 gap-3">
-            <input
-              type="text"
-              value={manualCity}
-              onChange={(e) => setManualCity(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && fetchWeatherByLocation(manualCity)}
-              placeholder="🔍 Cari kota (misal: Bandung)"
-              className="px-4 py-2 w-full sm:w-72 rounded-lg text-gray-800 border border-sky-400 focus:ring-2 focus:ring-sky-300 outline-none shadow-sm"
-            />
-            <button
-              onClick={() => fetchWeatherByLocation(manualCity)}
-              className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg font-semibold shadow-md"
-            >
-              Cari
-            </button>
-            <button
-              onClick={handleUseMyLocation}
-              className="bg-gray-500 hover:bg-gray-600 px-4 py-2 rounded-lg font-semibold shadow-md"
-            >
-              📍 Lokasi Saya
-            </button>
-          </div>
-        </motion.header>
+  {/* Judul */}
+  <h1 className="text-3xl sm:text-5xl font-extrabold bg-gradient-to-r from-sky-200 to-cyan-400 bg-clip-text text-transparent drop-shadow-lg">
+    WeatherFo
+  </h1>
+  <p className="text-xs sm:text-sm text-blue-100 tracking-wide mt-1 mb-6">
+    Real-Time Weather Application
+  </p>
+
+  {/* Search bar dan tombol */}
+  <div className="flex flex-col items-center w-full max-w-xs sm:max-w-sm gap-3">
+    <input
+      type="text"
+      value={manualCity}
+      onChange={(e) => setManualCity(e.target.value)}
+      onKeyDown={(e) => e.key === "Enter" && fetchWeatherByLocation(manualCity)}
+      placeholder="🔍 Cari kota (misal: Bandung)"
+      className="px-4 py-2 w-full rounded-lg text-gray-800 border border-sky-400 
+                 focus:ring-2 focus:ring-sky-300 outline-none shadow-sm"
+    />
+    <button
+      onClick={() => fetchWeatherByLocation(manualCity)}
+      className="bg-sky-500 hover:bg-sky-600 w-full px-4 py-2 rounded-lg font-semibold shadow-md text-white"
+    >
+      Cari
+    </button>
+    <button
+      onClick={handleUseMyLocation}
+      className="bg-gray-500 hover:bg-gray-600 w-full px-4 py-2 rounded-lg font-semibold shadow-md text-white"
+    >
+      📍 Lokasi Saya
+    </button>
+  </div>
+</motion.header>
 
         {/* BODY */}
         {loading && (
@@ -228,49 +234,98 @@ export default function App() {
               </div>
             </motion.div>
 
-{/* 🌦️ PRAKIRAAN 5 HARI KE DEPAN */}
+{/* 🌦️ PRAKIRAAN 5 HARI KE DEPAN (DESAIN BARU) */}
 <motion.div
   initial={{ opacity: 0, y: 20 }}
   animate={{ opacity: 1, y: 0 }}
-  className="bg-white/10 p-5 sm:p-6 rounded-3xl backdrop-blur-lg border border-white/20 shadow-lg"
+  className="bg-gradient-to-br from-white/10 via-white/5 to-transparent p-6 sm:p-8 rounded-3xl backdrop-blur-xl border border-white/20 shadow-2xl"
 >
-  <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-center flex items-center justify-center gap-2">
-    📅 Perkiraan 5 Hari ke Depan
-  </h3>
+  {/* Header */}
+  <div className="flex justify-center items-center gap-2 mb-6">
+    <span className="text-2xl">📅</span>
+    <h3 className="text-xl sm:text-2xl font-semibold text-center">
+      Perkiraan 5 Hari ke Depan
+    </h3>
+  </div>
 
-  {/* Grid responsif */}
-  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 place-items-center">
-    {forecast.slice(0, 5).map((d, i) => (
-      <motion.div
-        key={i}
-        whileHover={{ scale: 1.07, y: -3 }}
-        transition={{ type: "spring", stiffness: 180, damping: 15 }}
-        className="bg-white/20 hover:bg-white/30 transition-all duration-300 p-4 rounded-2xl text-center border border-white/30 backdrop-blur-sm shadow-md w-full max-w-[140px]"
-      >
-        {/* 📆 Tanggal */}
-        <div className="text-sm opacity-90 mb-1">{d.dateLabel}</div>
+  {/* Card Container */}
+  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+  {forecast.slice(0, 5).map((d, i) => (
+    <motion.div
+      key={i}
+      whileHover={{ scale: 1.05, y: -4 }}
+      transition={{ type: "spring", stiffness: 180, damping: 14 }}
+      className="relative bg-gradient-to-br from-sky-600/50 to-sky-900/40 
+                 rounded-[1.8rem] border border-white/20 shadow-xl 
+                 p-6 flex flex-col justify-between items-center text-center 
+                 overflow-hidden min-h-[270px] w-full max-w-[160px]
+                 hover:shadow-sky-400/30 backdrop-blur-lg transition-all duration-300"
+    >
+      {/* Overlay halus */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-transparent opacity-40 rounded-3xl"></div>
 
-        {/* 🌤️ Icon */}
-        <img
-          src={`https://openweathermap.org/img/wn/${d.icon}.png`}
-          alt={d.description}
-          className="mx-auto w-10 h-10 sm:w-12 sm:h-12 drop-shadow-md"
-          loading="lazy"
-        />
+      {/* 🗓️ Tanggal */}
+      <div className="text-sm font-medium text-white/90 z-10 tracking-wide">
+        {d.dateLabel}
+      </div>
 
-        {/* 🌡️ Suhu */}
-        <p className="text-xl sm:text-2xl font-bold mt-1">{d.temp_avg}°</p>
+{/* 🌦️ Ikon Cuaca */}
+<div className="relative z-10 my-3 flex items-center justify-center">
+  {d.icon ? (
+    <img
+      src={`https://openweathermap.org/img/wn/${d.icon}.png`}
+      alt={d.description}
+      className="w-16 h-13 drop-shadow-[0_4px_6px_rgba(0,0,0,0.3)] transition-transform duration-300 hover:scale-105"
+      loading="lazy"
+      onError={(e) => {
+        e.target.onerror = null;
+        e.target.src = "/fallback-weather.png"; // optional: buat gambar cadangan di public/
+      }}
+    />
+  ) : (
+    <span className="text-3xl">🌤️</span> // fallback emoji kalau gak ada icon
+  )}
+</div>
 
-        {/* ☁️ Deskripsi */}
-        <p className="text-[10px] sm:text-xs capitalize text-blue-100 mt-1 leading-tight">
+      {/* 🌡️ Suhu */}
+      <div className="z-10 flex flex-col items-center">
+        <p className="text-3xl font-extrabold text-white leading-none drop-shadow-sm">
+          {d.temp_avg}°
+        </p>
+        <p className="text-xs sm:text-sm capitalize text-blue-100/90 mt-1 leading-tight">
           {d.description}
         </p>
-        
-      </motion.div>
-      
-    ))}
-    
+      </div>
+
+      {/* 🔺🔻 Suhu Maks-Min */}
+      <div className="z-10 flex justify-center gap-4 text-xs sm:text-sm text-blue-200/80 mt-2">
+        <span>⬆ {d.temp_max}°</span>
+        <span>⬇ {d.temp_min}°</span>
+      </div>
+    </motion.div>
+  ))}
+</div>
+
+  {/* Garis Pembatas */}
+  <div className="w-full h-[1px] bg-white/10 my-6"></div>
+
+  {/* Ringkasan Hari Ini */}
+  <div className="text-center text-sm sm:text-base text-blue-100/90 leading-relaxed">
+    Hari ini di <b>{city}</b>, suhu rata-rata sekitar{" "}
+    <b>{Math.round(data.temp)}°C</b> dengan kondisi{" "}
+    <b>{data.weather[0].description}</b>. Kelembapan{" "}
+    <b>{data.humidity}%</b> dan kecepatan angin{" "}
+    <b>{data.wind_speed} m/s</b>.
   </div>
+
+  {/* Update Waktu */}
+  <p className="mt-3 text-center text-xs text-blue-200/70 italic">
+    Terakhir diperbarui:{" "}
+    {new Date().toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })}
+  </p>
 </motion.div>
 
 
