@@ -37,3 +37,63 @@ input:focus, button:focus {
   outline: none !important;
   border-radius: 1rem;
 }
+
+.leaflet-container {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.leaflet-pane,
+.leaflet-map-pane,
+.leaflet-tile,
+.leaflet-layer {
+  border-radius: 1rem !important;
+}
+
+.leaflet-control-container {
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.3));
+}
+
+.leaflet-control-attribution {
+  background: transparent !important;
+  border: none !important;
+  font-size: 10px !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* 🌌 Hilangkan semua garis putih / border luar */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  background-color: #0a0a0a; /* warna dasar aman */
+  overflow-x: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+/* 🌫️ Hapus border container yang mungkin bikin pinggiran */
+* {
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+
+/* 🗺️ Map khusus biar gak ada frame putih */
+.leaflet-container {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 🌀 Gradient tetap full screen tanpa garis tepi */
+.bg-gradient-to-br {
+  background-attachment: fixed;
+  background-size: cover;
+}
+
+/* 🪶 Smooth edge */
+body {
+  background: linear-gradient(to bottom right, #0a2540, #021526, #000814);
+}
