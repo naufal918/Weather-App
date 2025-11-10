@@ -22,19 +22,16 @@ export default function App() {
   const fetchWeatherByCoords = async (latVal, lonVal) => {
     setLoading(true);
     try {
-      // 🌡️ Cuaca saat ini
       const currentRes = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?lat=${latVal}&lon=${lonVal}&units=metric&appid=${apiKey}`
       );
       const currentData = await currentRes.json();
-  
-      // 🔮 Prakiraan 5 hari (tiap 3 jam, total 40 data)
+
       const forecastRes = await fetch(
         `https://api.openweathermap.org/data/2.5/forecast?lat=${latVal}&lon=${lonVal}&units=metric&appid=${apiKey}`
       );
       const forecastData = await forecastRes.json();
-  
-      // 🧠 Simpan data cuaca utama
+
       setData({
         temp: currentData.main?.temp ?? 0,
         feels_like: currentData.main?.feels_like ?? 0,
@@ -44,19 +41,13 @@ export default function App() {
         visibility: currentData.visibility ?? 0,
         weather: currentData.weather ?? [],
       });
-  
-      // 📅 Buat grouping data jadi 7 hari ke depan (ambil tiap 6 data = ±18 jam)
+
       const grouped = [];
-      for (let i = 0; i < forecastData.list.length; i += 1) {
-        if (grouped.length < 7) {
-          grouped.push(forecastData.list[i]);
-        }
-      }
-  
+      for (let i = 0; i < forecastData.list.length; i += 8)
+        grouped.push(forecastData.list[i]);
       setForecast(grouped);
       setHourly(forecastData.list);
-  
-      // 🕐 Pilih hari pertama untuk tampilan jam per jam
+
       const firstDay = new Date(forecastData.list[0].dt * 1000).toLocaleDateString("id-ID", {
         weekday: "short",
         day: "numeric",
