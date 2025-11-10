@@ -18,7 +18,7 @@ export default function App() {
   const [manualCity, setManualCity] = useState("");
   const [selectedDay, setSelectedDay] = useState("");
 
-  // Ambil data cuaca berdasar koordinat
+  // 🔹 Ambil data cuaca berdasar koordinat
   const fetchWeatherByCoords = async (latVal, lonVal) => {
     setLoading(true);
     try {
@@ -32,6 +32,7 @@ export default function App() {
       );
       const forecastData = await forecastRes.json();
 
+      // Simpan cuaca saat ini
       setData({
         temp: currentData.main?.temp ?? 0,
         feels_like: currentData.main?.feels_like ?? 0,
@@ -42,18 +43,44 @@ export default function App() {
         weather: currentData.weather ?? [],
       });
 
-      const grouped = [];
-      for (let i = 0; i < forecastData.list.length; i += 8)
-        grouped.push(forecastData.list[i]);
-      setForecast(grouped);
+      // ✅ FIX: kelompokkan berdasarkan tanggal (bukan setiap 8 item)
+      const groupedByDay = {};
+      forecastData.list.forEach((item) => {
+        const date = new Date(item.dt * 1000);
+        const dayKey = date.toISOString().split("T")[0]; // YYYY-MM-DD
+        if (!groupedByDay[dayKey]) groupedByDay[dayKey] = [];
+        groupedByDay[dayKey].push(item);
+      });
+
+      const daily = Object.keys(groupedByDay)
+        .slice(0, 7)
+        .map((key) => {
+          const items = groupedByDay[key];
+          const temps = items.map((i) => i.main.temp);
+          const min = Math.min(...temps);
+          const max = Math.max(...temps);
+          const mid = items[Math.floor(items.length / 2)];
+          const icon = mid.weather[0].icon;
+          const description = mid.weather[0].description;
+          const dateLabel = new Date(key).toLocaleDateString("id-ID", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+          });
+          return {
+            dateLabel,
+            temp_min: Math.round(min),
+            temp_max: Math.round(max),
+            temp_avg: Math.round((min + max) / 2),
+            icon,
+            description,
+          };
+        });
+
+      setForecast(daily);
       setHourly(forecastData.list);
 
-      const firstDay = new Date(forecastData.list[0].dt * 1000).toLocaleDateString("id-ID", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-      });
-      setSelectedDay(firstDay);
+      if (daily.length > 0) setSelectedDay(daily[0].dateLabel);
     } catch (err) {
       console.error("❌ Gagal ambil data cuaca:", err);
     } finally {
@@ -61,6 +88,7 @@ export default function App() {
     }
   };
 
+  // 🔹 Cari lokasi manual
   const fetchWeatherByLocation = async (query) => {
     if (!query.trim()) return;
     setLoading(true);
@@ -84,6 +112,7 @@ export default function App() {
     }
   };
 
+  // 🔹 Gunakan lokasi pengguna
   const handleUseMyLocation = () => {
     setLoading(true);
     navigator.geolocation.getCurrentPosition(
@@ -98,6 +127,7 @@ export default function App() {
     );
   };
 
+  // 🔹 Background gradient
   const getBackgroundClass = () => {
     if (!data?.weather) return "from-slate-900 via-slate-950 to-sky-950";
     const cond = data.weather[0].main.toLowerCase();
@@ -166,7 +196,6 @@ export default function App() {
           </div>
         )}
 
-        {/* 🌤️ Hanya tampilkan card jika data sudah ada */}
         {!loading && data && data.weather && data.weather.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
             {/* CUACA SAAT INI */}
@@ -193,50 +222,54 @@ export default function App() {
                 <div>🌡️ <b>{Math.round(data.feels_like)}°C</b><br />Feels</div>
                 <div>💧 <b>{data.humidity}%</b><br />Humidity</div>
                 <div>💨 <b>{data.wind_speed} m/s</b><br />Wind</div>
-                <div>🔆 <b>{data.uv}</b><br />UV Index</div>
+                <div>🔆 <b>{data.uv ?? "–"}</b><br />UV Index</div>
                 <div>🎈 <b>{data.pressure} hPa</b><br />Pressure</div>
                 <div>👁️ <b>{(data.visibility / 1000).toFixed(1)} km</b><br />Visibility</div>
               </div>
             </motion.div>
 
-            {/* PRAKIRAAN 5 HARI */}
-{/* PRAKIRAAN 7 HARI */}
+{/* 🌦️ PRAKIRAAN 5 HARI KE DEPAN */}
 <motion.div
   initial={{ opacity: 0, y: 20 }}
   animate={{ opacity: 1, y: 0 }}
   className="bg-white/10 p-5 sm:p-6 rounded-3xl backdrop-blur-lg border border-white/20 shadow-lg"
 >
-  <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-center">
-    📅 Perkiraan 7 Hari ke Depan
+  <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-center flex items-center justify-center gap-2">
+    📅 Perkiraan 5 Hari ke Depan
   </h3>
 
-  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-4 place-items-center">
-    {forecast.slice(0, 7).map((d, i) => (
+  {/* Grid responsif */}
+  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 place-items-center">
+    {forecast.slice(0, 5).map((d, i) => (
       <motion.div
         key={i}
         whileHover={{ scale: 1.07, y: -3 }}
         transition={{ type: "spring", stiffness: 180, damping: 15 }}
-        className="bg-white/20 hover:bg-white/30 transition-all duration-300 p-4 rounded-2xl text-center border border-white/30 backdrop-blur-sm shadow-md w-full max-w-[120px]"
+        className="bg-white/20 hover:bg-white/30 transition-all duration-300 p-4 rounded-2xl text-center border border-white/30 backdrop-blur-sm shadow-md w-full max-w-[140px]"
       >
-        <div className="text-sm opacity-90 mb-1">
-          {new Date(d.dt * 1000).toLocaleDateString("id-ID", {
-            weekday: "short",
-            day: "numeric",
-          })}
-        </div>
+        {/* 📆 Tanggal */}
+        <div className="text-sm opacity-90 mb-1">{d.dateLabel}</div>
+
+        {/* 🌤️ Icon */}
         <img
-          src={`https://openweathermap.org/img/wn/${d.weather[0].icon}.png`}
-          alt=""
+          src={`https://openweathermap.org/img/wn/${d.icon}.png`}
+          alt={d.description}
           className="mx-auto w-10 h-10 sm:w-12 sm:h-12 drop-shadow-md"
+          loading="lazy"
         />
-        <p className="text-xl sm:text-2xl font-bold mt-1">
-          {Math.round(d.main.temp)}°
-        </p>
+
+        {/* 🌡️ Suhu */}
+        <p className="text-xl sm:text-2xl font-bold mt-1">{d.temp_avg}°</p>
+
+        {/* ☁️ Deskripsi */}
         <p className="text-[10px] sm:text-xs capitalize text-blue-100 mt-1 leading-tight">
-          {d.weather[0].description}
+          {d.description}
         </p>
+        
       </motion.div>
+      
     ))}
+    
   </div>
 </motion.div>
 
