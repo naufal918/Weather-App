@@ -63,6 +63,24 @@ input:focus, button:focus {
   color: rgba(255, 255, 255, 0.6) !important;
 }
 
+.leaflet-container {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+
+.leaflet-control-attribution {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  border: none !important;
+  font-size: 10px;
+}
+
 /* 🌌 Hilangkan semua garis putih / border luar */
 html, body, #root {
   margin: 0;
@@ -96,4 +114,16 @@ html, body, #root {
 /* 🪶 Smooth edge */
 body {
   background: linear-gradient(to bottom right, #0a2540, #021526, #000814);
+}
+
+#radarMap {
+  border: none;
+  outline: none;
+  overflow: hidden;
+  border-radius: 1rem;
+}
+.leaflet-container {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }

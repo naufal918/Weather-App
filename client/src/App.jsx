@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import WeatherBackground from "./WeatherBackground";
 import Map from "./Map";
 import RadarMap from "./RadarMap";
@@ -14,86 +13,28 @@ export default function App() {
   const [hourly, setHourly] = useState([]);
   const [lat, setLat] = useState(null);
   const [lon, setLon] = useState(null);
-  const [city, setCity] = useState("Lokasi Anda");
-  const [loading, setLoading] = useState(true);
+  const [city, setCity] = useState("");
+  const [loading, setLoading] = useState(false);
   const [manualCity, setManualCity] = useState("");
   const [selectedDay, setSelectedDay] = useState("");
 
-  // Geolocation + Fetching data seperti sebelumnya
-  useEffect(() => {
-    if (!manualCity && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLat(pos.coords.latitude);
-          setLon(pos.coords.longitude);
-        },
-        (err) => setLoading(false)
-      );
-    }
-  }, [manualCity]);
-
-  useEffect(() => {
-    if (lat && lon) fetchWeatherByCoords(lat, lon);
-  }, [lat, lon]);
-
-  const handleUseMyLocation = () => {
-    setManualCity("");
-    setLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude);
-        setLon(pos.coords.longitude);
-        setCity("Lokasi Anda");
-      },
-      (err) => setLoading(false)
-    );
-  };
-
-  const fetchWeatherByLocation = async (query) => {
-    if (!query.trim()) return;
-    setLoading(true);
-    try {
-      const geoRes = await fetch(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(
-          query
-        )}&limit=5&appid=${apiKey}`
-      );
-      const geoData = await geoRes.json();
-      if (!geoData.length) throw new Error("Lokasi tidak ditemukan!");
-      const { lat: gLat, lon: gLon, name, state, country } = geoData[0];
-      setLat(gLat);
-      setLon(gLon);
-      setCity(`${name}${state ? ", " + state : ""}${country ? " (" + country + ")" : ""}`);
-    } catch (err) {
-      alert("Gagal menemukan lokasi. Coba nama lain.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Ambil data cuaca berdasar koordinat
   const fetchWeatherByCoords = async (latVal, lonVal) => {
     setLoading(true);
     try {
+      // 🌡️ Cuaca saat ini
       const currentRes = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?lat=${latVal}&lon=${lonVal}&units=metric&appid=${apiKey}`
       );
       const currentData = await currentRes.json();
+  
+      // 🔮 Prakiraan 5 hari (tiap 3 jam, total 40 data)
       const forecastRes = await fetch(
         `https://api.openweathermap.org/data/2.5/forecast?lat=${latVal}&lon=${lonVal}&units=metric&appid=${apiKey}`
       );
       const forecastData = await forecastRes.json();
-
-      let airQuality = null;
-      try {
-        const airRes = await fetch(
-          `https://api.openweathermap.org/data/2.5/air_pollution?lat=${latVal}&lon=${lonVal}&appid=${apiKey}`
-        );
-        const airData = await airRes.json();
-        airQuality = airData.list?.[0]?.main?.aqi || null;
-      } catch {
-        airQuality = null;
-      }
-
+  
+      // 🧠 Simpan data cuaca utama
       setData({
         temp: currentData.main?.temp ?? 0,
         feels_like: currentData.main?.feels_like ?? 0,
@@ -102,18 +43,20 @@ export default function App() {
         pressure: currentData.main?.pressure ?? 0,
         visibility: currentData.visibility ?? 0,
         weather: currentData.weather ?? [],
-        sunrise: currentData.sys?.sunrise ?? null,
-        sunset: currentData.sys?.sunset ?? null,
-        uv: "N/A",
-        aqi: airQuality,
       });
-
-      const groupedForecast = [];
-      for (let i = 0; i < forecastData.list.length; i += 8)
-        groupedForecast.push(forecastData.list[i]);
-      setForecast(groupedForecast);
+  
+      // 📅 Buat grouping data jadi 7 hari ke depan (ambil tiap 6 data = ±18 jam)
+      const grouped = [];
+      for (let i = 0; i < forecastData.list.length; i += 1) {
+        if (grouped.length < 7) {
+          grouped.push(forecastData.list[i]);
+        }
+      }
+  
+      setForecast(grouped);
       setHourly(forecastData.list);
-
+  
+      // 🕐 Pilih hari pertama untuk tampilan jam per jam
       const firstDay = new Date(forecastData.list[0].dt * 1000).toLocaleDateString("id-ID", {
         weekday: "short",
         day: "numeric",
@@ -125,6 +68,43 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchWeatherByLocation = async (query) => {
+    if (!query.trim()) return;
+    setLoading(true);
+    try {
+      const geoRes = await fetch(
+        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(
+          query
+        )}&limit=1&appid=${apiKey}`
+      );
+      const geoData = await geoRes.json();
+      if (!geoData.length) throw new Error("Lokasi tidak ditemukan!");
+      const { lat, lon, name } = geoData[0];
+      setLat(lat);
+      setLon(lon);
+      setCity(name);
+      await fetchWeatherByCoords(lat, lon);
+    } catch (err) {
+      alert("Gagal menemukan lokasi. Coba nama lain.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUseMyLocation = () => {
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setLat(latitude);
+        setLon(longitude);
+        setCity("Lokasi Anda");
+        await fetchWeatherByCoords(latitude, longitude);
+      },
+      (err) => setLoading(false)
+    );
   };
 
   const getBackgroundClass = () => {
@@ -163,6 +143,7 @@ export default function App() {
             Real-Time Weather Application
           </p>
 
+          {/* Search bar */}
           <div className="flex flex-col sm:flex-row justify-center mt-6 gap-3">
             <input
               type="text"
@@ -188,11 +169,14 @@ export default function App() {
         </motion.header>
 
         {/* BODY */}
-        {loading ? (
-          <div className="text-center mt-20 text-base sm:text-lg animate-pulse">
+        {loading && (
+          <div className="text-center mt-10 text-base sm:text-lg animate-pulse">
             📡 Mengambil data cuaca...
           </div>
-        ) : (
+        )}
+
+        {/* 🌤️ Hanya tampilkan card jika data sudah ada */}
+        {!loading && data && data.weather && data.weather.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
             {/* CUACA SAAT INI */}
             <motion.div
@@ -202,64 +186,69 @@ export default function App() {
             >
               <div className="flex flex-col items-center text-center">
                 <img
-                  src={`https://openweathermap.org/img/wn/${data?.weather?.[0]?.icon}@4x.png`}
+                  src={`https://openweathermap.org/img/wn/${data.weather[0].icon}@4x.png`}
                   alt="icon"
                   className="w-24 h-24 sm:w-32 sm:h-32 mb-3 drop-shadow-lg"
                 />
-                <h2 className="text-5xl sm:text-7xl font-bold">{Math.round(data?.temp)}°C</h2>
+                <h2 className="text-5xl sm:text-7xl font-bold">{Math.round(data.temp)}°C</h2>
                 <p className="capitalize text-base sm:text-lg opacity-90">
-                  {data?.weather?.[0]?.description}
+                  {data.weather[0].description}
                 </p>
                 <p className="opacity-80 mt-2 text-sm sm:text-base">📍 {city}</p>
               </div>
 
               {/* Info grid */}
               <div className="mt-6 grid grid-cols-3 gap-3 text-center text-xs sm:text-sm opacity-90">
-                <div>🌡️ <b>{Math.round(data?.feels_like)}°C</b><br />Feels</div>
-                <div>💧 <b>{data?.humidity}%</b><br />Humidity</div>
-                <div>💨 <b>{data?.wind_speed} m/s</b><br />Wind</div>
-                <div>🔆 <b>{data?.uv}</b><br />UV Index</div>
-                <div>🎈 <b>{data?.pressure} hPa</b><br />Pressure</div>
-                <div>👁️ <b>{(data?.visibility / 1000).toFixed(1)} km</b><br />Visibility</div>
+                <div>🌡️ <b>{Math.round(data.feels_like)}°C</b><br />Feels</div>
+                <div>💧 <b>{data.humidity}%</b><br />Humidity</div>
+                <div>💨 <b>{data.wind_speed} m/s</b><br />Wind</div>
+                <div>🔆 <b>{data.uv}</b><br />UV Index</div>
+                <div>🎈 <b>{data.pressure} hPa</b><br />Pressure</div>
+                <div>👁️ <b>{(data.visibility / 1000).toFixed(1)} km</b><br />Visibility</div>
               </div>
             </motion.div>
 
             {/* PRAKIRAAN 5 HARI */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white/10 p-5 sm:p-6 rounded-3xl backdrop-blur-lg border border-white/20 shadow-lg"
-            >
-              <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-center">
-                📅 Prakiraan 5 Hari
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 place-items-center">
-                {forecast.map((d, i) => (
-                  <div
-                    key={i}
-                    className="bg-white/20 p-4 rounded-2xl text-center border border-white/30 backdrop-blur-sm w-full max-w-[120px]"
-                  >
-                    <div className="text-sm opacity-90 mb-1">
-                      {new Date(d.dt * 1000).toLocaleDateString("id-ID", {
-                        weekday: "short",
-                        day: "numeric",
-                      })}
-                    </div>
-                    <img
-                      src={`https://openweathermap.org/img/wn/${d.weather[0].icon}.png`}
-                      alt=""
-                      className="mx-auto w-10 h-10 sm:w-12 sm:h-12"
-                    />
-                    <p className="text-xl sm:text-2xl font-bold mt-1">
-                      {Math.round(d.main.temp)}°
-                    </p>
-                    <p className="text-[10px] sm:text-xs capitalize text-blue-100 mt-1 leading-tight">
-                      {d.weather[0].description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
+{/* PRAKIRAAN 7 HARI */}
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  className="bg-white/10 p-5 sm:p-6 rounded-3xl backdrop-blur-lg border border-white/20 shadow-lg"
+>
+  <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-center">
+    📅 Perkiraan 7 Hari ke Depan
+  </h3>
+
+  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-4 place-items-center">
+    {forecast.slice(0, 7).map((d, i) => (
+      <motion.div
+        key={i}
+        whileHover={{ scale: 1.07, y: -3 }}
+        transition={{ type: "spring", stiffness: 180, damping: 15 }}
+        className="bg-white/20 hover:bg-white/30 transition-all duration-300 p-4 rounded-2xl text-center border border-white/30 backdrop-blur-sm shadow-md w-full max-w-[120px]"
+      >
+        <div className="text-sm opacity-90 mb-1">
+          {new Date(d.dt * 1000).toLocaleDateString("id-ID", {
+            weekday: "short",
+            day: "numeric",
+          })}
+        </div>
+        <img
+          src={`https://openweathermap.org/img/wn/${d.weather[0].icon}.png`}
+          alt=""
+          className="mx-auto w-10 h-10 sm:w-12 sm:h-12 drop-shadow-md"
+        />
+        <p className="text-xl sm:text-2xl font-bold mt-1">
+          {Math.round(d.main.temp)}°
+        </p>
+        <p className="text-[10px] sm:text-xs capitalize text-blue-100 mt-1 leading-tight">
+          {d.weather[0].description}
+        </p>
+      </motion.div>
+    ))}
+  </div>
+</motion.div>
+
 
             {/* RADAR & MAP */}
             <motion.div
