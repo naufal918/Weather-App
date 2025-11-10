@@ -338,7 +338,7 @@ export default function App() {
               <h3 className="text-base sm:text-lg font-semibold mb-3 text-center">
                 🌧️ Radar & Peta Cuaca
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Map lat={lat} lon={lon} city={city} />
                 <RadarMap lat={lat} lon={lon} />
               </div>
