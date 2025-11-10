@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import WeatherBackground from "./WeatherBackground";
 import Map from "./Map";
 import RadarMap from "./RadarMap";
+import WeatherScene from "./WeatherScene";
 import "./index.css";
 
 export default function App() {
@@ -69,42 +70,66 @@ export default function App() {
   const fetchWeatherByCoords = async (latVal, lonVal) => {
     setLoading(true);
     try {
+      // 🌡️ Cuaca Saat Ini
       const currentRes = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?lat=${latVal}&lon=${lonVal}&units=metric&appid=${apiKey}`
       );
       const currentData = await currentRes.json();
-
+  
+      // 🌦️ Prakiraan 5 Hari
       const forecastRes = await fetch(
         `https://api.openweathermap.org/data/2.5/forecast?lat=${latVal}&lon=${lonVal}&units=metric&appid=${apiKey}`
       );
       const forecastData = await forecastRes.json();
-
+  
+      // 🌬️ Kualitas Udara
+      let airQuality = null;
+      try {
+        const airRes = await fetch(
+          `https://api.openweathermap.org/data/2.5/air_pollution?lat=${latVal}&lon=${lonVal}&appid=${apiKey}`
+        );
+        const airData = await airRes.json();
+        airQuality = airData.list?.[0]?.main?.aqi || null;
+      } catch {
+        airQuality = null;
+      }
+  
+      // 🧠 Set data utama
       setData({
-        temp: currentData.main.temp,
-        feels_like: currentData.main.feels_like,
-        humidity: currentData.main.humidity,
-        wind_speed: currentData.wind?.speed,
-        weather: currentData.weather,
+        temp: currentData.main?.temp ?? 0,
+        feels_like: currentData.main?.feels_like ?? 0,
+        humidity: currentData.main?.humidity ?? 0,
+        wind_speed: currentData.wind?.speed ?? 0,
+        pressure: currentData.main?.pressure ?? 0,
+        visibility: currentData.visibility ?? 0,
+        weather: currentData.weather ?? [],
+        sunrise: currentData.sys?.sunrise ?? null,
+        sunset: currentData.sys?.sunset ?? null,
         name: currentData.name,
+        uv: "N/A", // fallback karena OneCall nggak gratis
+        aqi: airQuality,
       });
-
+  
+      // 📅 Group data forecast
       const groupedForecast = [];
       for (let i = 0; i < forecastData.list.length; i += 8)
         groupedForecast.push(forecastData.list[i]);
       setForecast(groupedForecast);
       setHourly(forecastData.list);
-
+  
+      // 🕐 Pilih hari pertama untuk hourly
       const firstDay = new Date(forecastData.list[0].dt * 1000).toLocaleDateString("id-ID", {
         weekday: "short",
         day: "numeric",
         month: "short",
       });
       setSelectedDay(firstDay);
+    } catch (err) {
+      console.error("❌ Gagal ambil data cuaca:", err);
     } finally {
       setLoading(false);
     }
   };
-
   const getBackgroundClass = () => {
     if (!data?.weather) return "from-slate-900 via-slate-950 to-sky-950";
     const cond = data.weather[0].main.toLowerCase();
@@ -171,11 +196,33 @@ export default function App() {
                 <p className="capitalize text-lg">{data?.weather?.[0]?.description}</p>
                 <p className="opacity-80 mt-2">📍 {city}</p>
               </div>
-              <div className="mt-4 grid grid-cols-3 text-center text-sm opacity-90">
-                <div>🌡️ <b>{Math.round(data?.feels_like)}°C</b><br/>Feels</div>
-                <div>💧 <b>{data?.humidity}%</b><br/>Humidity</div>
-                <div>💨 <b>{data?.wind_speed} m/s</b><br/>Wind</div>
-              </div>
+              <div className="mt-4 grid grid-cols-3 gap-4 text-center text-sm opacity-90">
+  <div>🌡️ <b>{Math.round(data?.feels_like)}°C</b><br/>Feels</div>
+  <div>💧 <b>{data?.humidity}%</b><br/>Humidity</div>
+  <div>💨 <b>{data?.wind_speed} m/s</b><br/>Wind</div>
+  <div>🔆 <b>{data?.uv}</b><br/>UV Index</div>
+  <div>🎈 <b>{data?.pressure} hPa</b><br/>Pressure</div>
+  <div>👁️ <b>{(data?.visibility / 1000).toFixed(1)} km</b><br/>Visibility</div>
+</div>
+
+<div className="mt-4 text-center text-sm opacity-90">
+  <div>🌅 <b>{new Date(data?.sunrise * 1000).toLocaleTimeString("id-ID", {hour: "2-digit", minute: "2-digit"})}</b>  
+    &nbsp; | &nbsp; 🌇 <b>{new Date(data?.sunset * 1000).toLocaleTimeString("id-ID", {hour: "2-digit", minute: "2-digit"})}</b>
+  </div>
+</div>
+
+<div className="mt-3 text-center text-sm">
+  <span className={`px-3 py-1 rounded-full ${
+    data?.aqi === 1 ? "bg-green-500/50" :
+    data?.aqi === 2 ? "bg-yellow-500/50" :
+    data?.aqi === 3 ? "bg-orange-500/50" :
+    data?.aqi === 4 ? "bg-red-500/50" :
+    "bg-purple-700/50"
+  }`}>
+    🌫️ Kualitas Udara: {["Baik","Sedang","Kurang Sehat","Buruk","Berbahaya"][data?.aqi - 1] || "N/A"}
+  </span>
+</div>
+
             </motion.div>
 
             {/* PRAKIRAAN 5 HARI */}
@@ -287,7 +334,9 @@ export default function App() {
       </div>
       <footer className="mt-10 text-sm text-center text-blue-100">
         🌤️ Dibuat oleh <b>Naufal Abdullah</b> • React + Tailwind + OpenWeatherMap
+              <div></div>
       </footer>
+
     </motion.div>
   );
 }
