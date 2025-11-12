@@ -22,8 +22,26 @@ export default function App() {
     setLoading(true);
     try {
       const res = await fetch(`/api/weather?lat=${latVal}&lon=${lonVal}`);
-      const { current: currentData, forecast: forecastData } = await res.json();
   
+      // 🔹 Cek apakah respons server OK
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Server error ${res.status}: ${text}`);
+      }
+  
+      // 🔹 Parse JSON
+      const dataJson = await res.json();
+  
+      // 🔹 Pastikan struktur data lengkap
+      const currentData = dataJson.current;
+      const forecastData = dataJson.forecast;
+  
+      if (!currentData || !currentData.main) {
+        console.warn("⚠️ Data cuaca tidak valid dari server:", dataJson);
+        throw new Error("Data cuaca tidak valid dari server.");
+      }
+  
+      // 🔹 Simpan data ke state
       setData({
         temp: currentData.main?.temp ?? 0,
         feels_like: currentData.main?.feels_like ?? 0,
@@ -34,7 +52,11 @@ export default function App() {
         weather: currentData.weather ?? [],
       });
   
-      // Kelompokkan berdasarkan tanggal
+      // 🔹 Kelompokkan data prakiraan per hari
+      if (!forecastData || !forecastData.list) {
+        throw new Error("Data prakiraan cuaca tidak tersedia.");
+      }
+  
       const groupedByDay = {};
       forecastData.list.forEach((item) => {
         const date = new Date(item.dt * 1000);
@@ -70,10 +92,12 @@ export default function App() {
       if (daily.length > 0) setSelectedDay(daily[0].dateLabel);
     } catch (err) {
       console.error("❌ Gagal ambil data cuaca:", err);
+      alert("Gagal ambil data cuaca: " + err.message);
     } finally {
       setLoading(false);
     }
   };
+  
   
   // 🔹 Cari lokasi manual
   const fetchWeatherByLocation = async (query) => {
