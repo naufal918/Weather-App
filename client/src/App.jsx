@@ -7,7 +7,6 @@ import WeatherScene from "./WeatherScene";
 import "./index.css";
 
 export default function App() {
-  const apiKey = import.meta.env.VITE_OPENWEATHER_KEY;
   const [data, setData] = useState(null);
   const [forecast, setForecast] = useState([]);
   const [hourly, setHourly] = useState([]);
@@ -22,17 +21,9 @@ export default function App() {
   const fetchWeatherByCoords = async (latVal, lonVal) => {
     setLoading(true);
     try {
-      const currentRes = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${latVal}&lon=${lonVal}&units=metric&appid=${apiKey}`
-      );
-      const currentData = await currentRes.json();
-
-      const forecastRes = await fetch(
-        `https://api.openweathermap.org/data/2.5/forecast?lat=${latVal}&lon=${lonVal}&units=metric&appid=${apiKey}`
-      );
-      const forecastData = await forecastRes.json();
-
-      // Simpan cuaca saat ini
+      const res = await fetch(`/api/weather?lat=${latVal}&lon=${lonVal}`);
+      const { current: currentData, forecast: forecastData } = await res.json();
+  
       setData({
         temp: currentData.main?.temp ?? 0,
         feels_like: currentData.main?.feels_like ?? 0,
@@ -42,16 +33,16 @@ export default function App() {
         visibility: currentData.visibility ?? 0,
         weather: currentData.weather ?? [],
       });
-
-      // ✅ FIX: kelompokkan berdasarkan tanggal (bukan setiap 8 item)
+  
+      // Kelompokkan berdasarkan tanggal
       const groupedByDay = {};
       forecastData.list.forEach((item) => {
         const date = new Date(item.dt * 1000);
-        const dayKey = date.toISOString().split("T")[0]; // YYYY-MM-DD
-        if (!groupedByDay[dayKey]) groupedByDay[dayKey] = [];
-        groupedByDay[dayKey].push(item);
+        const key = date.toISOString().split("T")[0];
+        if (!groupedByDay[key]) groupedByDay[key] = [];
+        groupedByDay[key].push(item);
       });
-
+  
       const daily = Object.keys(groupedByDay)
         .slice(0, 7)
         .map((key) => {
@@ -60,26 +51,22 @@ export default function App() {
           const min = Math.min(...temps);
           const max = Math.max(...temps);
           const mid = items[Math.floor(items.length / 2)];
-          const icon = mid.weather[0].icon;
-          const description = mid.weather[0].description;
-          const dateLabel = new Date(key).toLocaleDateString("id-ID", {
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-          });
           return {
-            dateLabel,
+            dateLabel: new Date(key).toLocaleDateString("id-ID", {
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+            }),
             temp_min: Math.round(min),
             temp_max: Math.round(max),
             temp_avg: Math.round((min + max) / 2),
-            icon,
-            description,
+            icon: mid.weather[0].icon,
+            description: mid.weather[0].description,
           };
         });
-
+  
       setForecast(daily);
       setHourly(forecastData.list);
-
       if (daily.length > 0) setSelectedDay(daily[0].dateLabel);
     } catch (err) {
       console.error("❌ Gagal ambil data cuaca:", err);
@@ -87,24 +74,21 @@ export default function App() {
       setLoading(false);
     }
   };
-
+  
   // 🔹 Cari lokasi manual
   const fetchWeatherByLocation = async (query) => {
     if (!query.trim()) return;
     setLoading(true);
     try {
-      const geoRes = await fetch(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(
-          query
-        )}&limit=1&appid=${apiKey}`
-      );
-      const geoData = await geoRes.json();
-      if (!geoData.length) throw new Error("Lokasi tidak ditemukan!");
-      const { lat, lon, name } = geoData[0];
-      setLat(lat);
-      setLon(lon);
+      const res = await fetch(`/api/weather?q=${encodeURIComponent(query)}`);
+      const { current: currentData, forecast: forecastData, city: name } = await res.json();
+  
+      if (!currentData || !forecastData) throw new Error("Data tidak ditemukan");
+  
       setCity(name);
-      await fetchWeatherByCoords(lat, lon);
+      setLat(currentData.coord.lat);
+      setLon(currentData.coord.lon);
+      await fetchWeatherByCoords(currentData.coord.lat, currentData.coord.lon);
     } catch (err) {
       alert("Gagal menemukan lokasi. Coba nama lain.");
     } finally {
